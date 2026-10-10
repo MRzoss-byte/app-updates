@@ -6,11 +6,11 @@ on:
       version_name:
         description: Android versionName
         required: true
-        default: "1.0.3"
+        default: "1.0.4"
       version_code:
         description: Android versionCode
         required: true
-        default: "4"
+        default: "5"
       source_repo:
         description: Private source repo (owner/name)
         required: true
@@ -18,11 +18,11 @@ on:
       source_tag:
         description: Private release tag
         required: true
-        default: v1.0.3
+        default: v1.0.4
       expected_sha256:
         description: Expected APK sha256 (optional)
         required: false
-        default: d60a82fa9b02e7ce8b1dbeae52d31ba73dc3849a6106661fb85ca3371295d001
+        default: bb71ac6af5e2e2f7769a547b1347b0efbf3eb897d948b6423a6116782fdb3d82
 
 permissions:
   contents: write
@@ -30,7 +30,6 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment: Production
     steps:
       - uses: actions/checkout@v4
 
