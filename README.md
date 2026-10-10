@@ -61,7 +61,7 @@ EXPECTED_SHA256=d60a82fa9b02e7ce8b1dbeae52d31ba73dc3849a6106661fb85ca3371295d001
   scripts/publish.sh auction-tracker "$apk" 1.0.3 4
 ```
 
-GitHub Actions workflow `Publish auction-tracker` does the same using the Production environment secrets.
+Push `publish-requests/<app>.json` to trigger the **Publish app (request file)** workflow (needs a repository secret such as `PRIVATE_REPO_TOKEN` or `GH_PAT` with read access to the private source repo). Example files: `publish-requests/diyfolio.json`, `publish-requests/auction-tracker.json`.
 
 ## Deploy
 
