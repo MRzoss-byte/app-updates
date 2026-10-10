@@ -60,15 +60,18 @@ code {
 
 .apps {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   padding: 12px 0 28px;
 }
 
 .card {
+  min-width: 0;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 20px 20px 18px;
+  overflow-wrap: anywhere;
 }
 
 .card h2 {
@@ -140,7 +143,9 @@ code {
 
 .feed {
   display: inline-block;
+  max-width: 100%;
   font-size: 0.92rem;
+  overflow-wrap: anywhere;
 }
 
 footer {
