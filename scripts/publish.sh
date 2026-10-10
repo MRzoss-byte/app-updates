@@ -13,6 +13,11 @@
 # Set PUBLISH_SKIP_GIT=1 to write the file without committing or pushing.
 set -euo pipefail
 
+# Stale GH_TOKEN in the environment breaks `gh` (installation token is in gh auth).
+if [[ -n "${GH_TOKEN:-}" ]] && ! gh auth status >/dev/null 2>&1; then
+  unset GH_TOKEN GITHUB_TOKEN
+fi
+
 die() {
   echo "publish.sh: $*" >&2
   exit 1
@@ -102,6 +107,7 @@ REPO="${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
 tag="${APP}-v${VERSION_NAME}"
 asset_name="${APP}-${VERSION_NAME}.apk"
 sha=$(sha_file "$APK")
+published_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 if [[ -n "${EXPECTED_SHA256:-}" && "$sha" != "$EXPECTED_SHA256" ]]; then
   die "sha256 mismatch: expected $EXPECTED_SHA256 got $sha"
 fi
@@ -126,15 +132,7 @@ if [[ -z "$apk_url" ]]; then
   die "release $tag has no asset named $asset_name"
 fi
 
-mkdir -p "$APP"
-jq -n \
-  --argjson versionCode "$VERSION_CODE" \
-  --arg versionName "$VERSION_NAME" \
-  --arg apkUrl "$apk_url" \
-  --arg sha256 "$sha" \
-  --arg apkFileName "$asset_name" \
-  '{versionCode:$versionCode, versionName:$versionName, apkUrl:$apkUrl, sha256:$sha256, apkFileName:$apkFileName}' \
-  > "${APP}/latest.json"
+scripts/write-latest-json.sh "$APP" "$VERSION_NAME" "$VERSION_CODE" "$apk_url" "$sha" "$asset_name" "$NOTES" "$published_at"
 
 echo "Wrote ${APP}/latest.json"
 echo "apkUrl ${apk_url}"

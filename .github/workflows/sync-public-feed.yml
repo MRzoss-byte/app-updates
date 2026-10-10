@@ -1,0 +1,41 @@
+name: Sync public feed
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/app-sources.json
+      - scripts/manifest-fields.json
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install tooling
+        run: sudo apt-get update && sudo apt-get install -y jq aapt
+
+      - name: Sync feeds from private releases
+        env:
+          AUCTION_TRACKER_REPO_TOKEN: ${{ secrets.AUCTION_TRACKER_REPO_TOKEN }}
+          DIYFOLIO_REPO_TOKEN: ${{ secrets.DIYFOLIO_REPO_TOKEN }}
+          MILEAGE_TRACKER_REPO_TOKEN: ${{ secrets.MILEAGE_TRACKER_REPO_TOKEN }}
+          HANNAHS_PAINTS_REPO_TOKEN: ${{ secrets.HANNAHS_PAINTS_REPO_TOKEN }}
+          PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          SOURCE_REPO_TOKEN: ${{ secrets.SOURCE_REPO_TOKEN }}
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          scripts/inspect-updater-schemas.sh || true
+          scripts/sync-public-feed.sh
+          git pull --rebase origin main || true

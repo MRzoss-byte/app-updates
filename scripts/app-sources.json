@@ -1,0 +1,24 @@
+{
+  "apps": [
+    {
+      "id": "diyfolio",
+      "sourceRepo": "MRzoss-byte/DIYfolio",
+      "sourceTag": "v11.6.42"
+    },
+    {
+      "id": "auction-tracker",
+      "sourceRepo": "MRzoss-byte/Auction-Tracker-",
+      "sourceTag": "v1.2.2"
+    },
+    {
+      "id": "mileage-tracker",
+      "sourceRepo": "MRzoss-byte/Mileage-Tracker",
+      "sourceTag": "latest"
+    },
+    {
+      "id": "hannahs-paints",
+      "sourceRepo": "MRzoss-byte/Hannah-s-Paints",
+      "sourceTag": "latest"
+    }
+  ]
+}
