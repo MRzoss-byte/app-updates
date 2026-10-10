@@ -1,0 +1,4 @@
+.vercel
+*.apk
+*.aab
+.DS_Store

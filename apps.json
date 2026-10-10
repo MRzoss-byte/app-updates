@@ -1,0 +1,24 @@
+{
+  "apps": [
+    {
+      "id": "diyfolio",
+      "name": "DIYfolio",
+      "packageName": "app.diyfolio.app"
+    },
+    {
+      "id": "hannahs-paints",
+      "name": "Hannah's Paints",
+      "packageName": null
+    },
+    {
+      "id": "mileage-tracker",
+      "name": "Mileage Tracker",
+      "packageName": null
+    },
+    {
+      "id": "auction-tracker",
+      "name": "Auction Tracker",
+      "packageName": "app.lotledger.auction"
+    }
+  ]
+}
