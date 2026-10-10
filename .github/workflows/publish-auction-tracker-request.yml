@@ -24,7 +24,7 @@ jobs:
           echo "version_name=$(jq -r .versionName publish-requests/auction-tracker.json)" >> "$GITHUB_OUTPUT"
           echo "version_code=$(jq -r .versionCode publish-requests/auction-tracker.json)" >> "$GITHUB_OUTPUT"
           echo "source_repo=$(jq -r '.sourceRepo // "MRzoss-byte/Auction-Tracker-"' publish-requests/auction-tracker.json)" >> "$GITHUB_OUTPUT"
-          echo "source_tag=$(jq -r '.sourceTag // "v" + .versionName' publish-requests/auction-tracker.json)" >> "$GITHUB_OUTPUT"
+          echo "source_tag=$(jq -r '.sourceTag // ("v" + .versionName)' publish-requests/auction-tracker.json)" >> "$GITHUB_OUTPUT"
           echo "expected_sha256=$(jq -r .sha256 publish-requests/auction-tracker.json)" >> "$GITHUB_OUTPUT"
 
       - name: Install tooling
