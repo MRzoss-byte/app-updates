@@ -2,7 +2,7 @@
 # Publish one Android APK to a GitHub Release and point /<app>/latest.json at it.
 #
 # Usage:
-#   scripts/publish.sh <app> <apk> <versionName> <versionCode> <notes>
+#   scripts/publish.sh <app> <apk> <versionName> <versionCode> [notes]
 #
 # Example:
 #   scripts/publish.sh diyfolio ./app-release.apk 11.6.26 110626 "Fixes export."
@@ -19,11 +19,11 @@ die() {
 }
 
 usage() {
-  echo "Usage: scripts/publish.sh <app> <apk> <versionName> <versionCode> <notes>" >&2
+  echo "Usage: scripts/publish.sh <app> <apk> <versionName> <versionCode> [notes]" >&2
   exit 2
 }
 
-if [[ $# -lt 5 ]]; then
+if [[ $# -lt 4 ]]; then
   usage
 fi
 
@@ -45,8 +45,11 @@ fi
 if (( VERSION_CODE > 2100000000 )); then
   die "versionCode is above Android's limit of 2100000000"
 fi
-if [[ -z "${NOTES//[[:space:]]/}" ]]; then
-  die "notes are required"
+if [[ "$APK" =~ ^https?:// ]]; then
+  tmp_apk=$(mktemp --suffix=.apk)
+  trap 'rm -f "$tmp_apk"' RETURN
+  curl -fsSL "$APK" -o "$tmp_apk"
+  APK="$tmp_apk"
 fi
 if [[ ! -f "$APK" ]]; then
   die "APK not found: $APK"
@@ -87,6 +90,9 @@ if ! jq -e --arg id "$APP" '[.apps[] | select(.id == $id)] | length == 1' apps.j
 fi
 
 display_name=$(jq -r --arg id "$APP" '.apps[] | select(.id == $id) | .name' apps.json)
+if [[ -z "${NOTES//[[:space:]]/}" ]]; then
+  NOTES="${display_name} ${VERSION_NAME}"
+fi
 origin=$(git remote get-url origin)
 if [[ ! "$origin" =~ github.com[:/]([^/]+)/([^/.]+)(\.git)?$ ]]; then
   die "origin is not a github.com repo"
@@ -96,7 +102,9 @@ REPO="${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
 tag="${APP}-v${VERSION_NAME}"
 asset_name="${APP}-${VERSION_NAME}.apk"
 sha=$(sha_file "$APK")
-published_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+if [[ -n "${EXPECTED_SHA256:-}" && "$sha" != "$EXPECTED_SHA256" ]]; then
+  die "sha256 mismatch: expected $EXPECTED_SHA256 got $sha"
+fi
 
 gh auth status >/dev/null 2>&1 || die "gh is not authenticated"
 
@@ -124,9 +132,8 @@ jq -n \
   --arg versionName "$VERSION_NAME" \
   --arg apkUrl "$apk_url" \
   --arg sha256 "$sha" \
-  --arg notes "$NOTES" \
-  --arg publishedAt "$published_at" \
-  '{versionCode:$versionCode, versionName:$versionName, apkUrl:$apkUrl, sha256:$sha256, notes:$notes, publishedAt:$publishedAt}' \
+  --arg apkFileName "$asset_name" \
+  '{versionCode:$versionCode, versionName:$versionName, apkUrl:$apkUrl, sha256:$sha256, apkFileName:$apkFileName}' \
   > "${APP}/latest.json"
 
 echo "Wrote ${APP}/latest.json"

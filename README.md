@@ -19,16 +19,15 @@ The live feed URL is `https://<vercel-host>/<app>/latest.json`.
 
 ```json
 {
-  "versionCode": 110626,
-  "versionName": "11.6.26",
-  "apkUrl": "https://github.com/MRzoss-byte/app-updates/releases/download/diyfolio-v11.6.26/diyfolio-11.6.26.apk",
+  "versionCode": 4,
+  "versionName": "1.0.3",
+  "apkUrl": "https://github.com/MRzoss-byte/app-updates/releases/download/auction-tracker-v1.0.3/auction-tracker-1.0.3.apk",
   "sha256": "<64 lowercase hex characters>",
-  "notes": "What changed in this build.",
-  "publishedAt": "2026-10-10T03:46:00Z"
+  "apkFileName": "auction-tracker-1.0.3.apk"
 }
 ```
 
-`versionCode` is the Android `versionCode` integer. `apkUrl` is the release asset download URL. `sha256` is the APK file hash. `publishedAt` is UTC.
+`versionCode` is the Android `versionCode` integer. `apkUrl` is the release asset download URL. `sha256` is the APK file hash. `apkFileName` is the GitHub Release asset name.
 
 Until the first publish, `latest.json` is absent and the download page says no public release yet.
 
@@ -37,7 +36,7 @@ Until the first publish, `latest.json` is absent and the download page says no p
 Requires `git`, `gh` (authenticated with permission to create releases in this repo), `jq`, and `sha256sum` (`shasum` works too). Run from a checkout that can push. Production follows `main` once Vercel Git deployment is connected.
 
 ```bash
-scripts/publish.sh <app> <apk> <versionName> <versionCode> <notes>
+scripts/publish.sh <app> <apk> <versionName> <versionCode> [notes]
 ```
 
 ```bash
@@ -49,10 +48,20 @@ What it does:
 1. Checks `<app>` against `apps.json`.
 2. Creates GitHub Release `<app>-v<versionName>` (for example `diyfolio-v11.6.26`).
 3. Uploads the APK as `<app>-<versionName>.apk`.
-4. Writes `<app>/latest.json` with the download URL, sha256, notes, and timestamp.
+4. Writes `<app>/latest.json` with the download URL, sha256, and apkFileName.
 5. Commits that file and pushes the current branch.
 
-`PUBLISH_SKIP_GIT=1` writes `latest.json` and uploads the release without committing. Quote notes when they contain spaces. Re-publishing the same version name fails because the tag already exists.
+`PUBLISH_SKIP_GIT=1` writes `latest.json` and uploads the release without committing. Set `EXPECTED_SHA256` to fail fast when the APK hash does not match. Quote notes when they contain spaces. Re-publishing the same version name fails because the tag already exists.
+
+To copy an APK from a private source release (for example `MRzoss-byte/Auction-Tracker-` tag `v1.0.3`), set `AUCTION_TRACKER_REPO_TOKEN` (or `PRIVATE_REPO_TOKEN` / `GH_PAT`) and run:
+
+```bash
+apk=$(SOURCE_REPO=MRzoss-byte/Auction-Tracker- SOURCE_TAG=v1.0.3 scripts/fetch-private-release-apk.sh)
+EXPECTED_SHA256=d60a82fa9b02e7ce8b1dbeae52d31ba73dc3849a6106661fb85ca3371295d001 \
+  scripts/publish.sh auction-tracker "$apk" 1.0.3 4
+```
+
+GitHub Actions workflow `Publish auction-tracker` does the same using the Production environment secrets.
 
 ## Deploy
 

@@ -1,0 +1,68 @@
+name: Publish auction-tracker
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: Android versionName
+        required: true
+        default: "1.0.3"
+      version_code:
+        description: Android versionCode
+        required: true
+        default: "4"
+      source_repo:
+        description: Private source repo (owner/name)
+        required: true
+        default: MRzoss-byte/Auction-Tracker-
+      source_tag:
+        description: Private release tag
+        required: true
+        default: v1.0.3
+      expected_sha256:
+        description: Expected APK sha256 (optional)
+        required: false
+        default: d60a82fa9b02e7ce8b1dbeae52d31ba73dc3849a6106661fb85ca3371295d001
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tooling
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Download APK from private release
+        env:
+          AUCTION_TRACKER_REPO_TOKEN: ${{ secrets.AUCTION_TRACKER_REPO_TOKEN }}
+          PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          SOURCE_REPO: ${{ inputs.source_repo }}
+          SOURCE_TAG: ${{ inputs.source_tag }}
+        run: |
+          set -euo pipefail
+          apk_path=$(SOURCE_REPO="$SOURCE_REPO" SOURCE_TAG="$SOURCE_TAG" scripts/fetch-private-release-apk.sh)
+          echo "APK_PATH=$apk_path" >> "$GITHUB_ENV"
+          sha256sum "$apk_path"
+          if [[ -n "${{ inputs.expected_sha256 }}" ]]; then
+            actual=$(sha256sum "$apk_path" | awk '{print $1}')
+            if [[ "$actual" != "${{ inputs.expected_sha256 }}" ]]; then
+              echo "sha256 mismatch: expected ${{ inputs.expected_sha256 }} got $actual" >&2
+              exit 1
+            fi
+          fi
+
+      - name: Publish to app-updates
+        env:
+          EXPECTED_SHA256: ${{ inputs.expected_sha256 }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          scripts/publish.sh auction-tracker "$APK_PATH" "${{ inputs.version_name }}" "${{ inputs.version_code }}" "Auction Tracker ${{ inputs.version_name }}"

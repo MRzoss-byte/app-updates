@@ -48,6 +48,9 @@ async function renderApp(app) {
     if (latest.publishedAt) {
       card.append(el("p", "when", `Published ${formatWhen(latest.publishedAt)}`));
     }
+    if (latest.apkFileName) {
+      card.append(el("p", "package", latest.apkFileName));
+    }
     if (latest.notes) card.append(el("p", "notes", latest.notes));
     const link = el("a", "download", "Download APK");
     link.href = latest.apkUrl;
