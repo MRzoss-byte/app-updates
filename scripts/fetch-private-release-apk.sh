@@ -9,6 +9,10 @@
 #   AUCTION_TRACKER_REPO_TOKEN, PRIVATE_REPO_TOKEN, GH_PAT, GH_TOKEN, GITHUB_TOKEN
 set -euo pipefail
 
+if [[ -n "${GH_TOKEN:-}" ]] && ! gh auth status >/dev/null 2>&1; then
+  unset GH_TOKEN GITHUB_TOKEN
+fi
+
 die() {
   echo "fetch-private-release-apk.sh: $*" >&2
   exit 1
@@ -36,7 +40,18 @@ tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
 
 export GH_TOKEN="$token"
+
+if ! gh api "repos/${SOURCE_REPO}" --jq .name >/dev/null 2>&1; then
+  die "cannot access $SOURCE_REPO (404/403 — grant Cursor/GitHub token read access to this private repo)"
+fi
+
 tag="$SOURCE_TAG"
+if [[ "$tag" == "latest" ]]; then
+  if ! tag=$(gh release view --repo "$SOURCE_REPO" --json tagName -q .tagName 2>/dev/null); then
+    die "cannot read latest release on $SOURCE_REPO"
+  fi
+fi
+
 if ! gh release view "$tag" --repo "$SOURCE_REPO" >/dev/null 2>&1; then
   if [[ "$tag" == v* ]]; then
     alt="${tag#v}"

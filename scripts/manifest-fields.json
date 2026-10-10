@@ -1,0 +1,6 @@
+{
+  "diyfolio": ["version", "versionCode", "apkUrl", "sha256", "notes", "publishedAt", "apkFileName"],
+  "auction-tracker": ["version", "versionCode", "apkUrl", "sha256", "notes", "publishedAt", "apkFileName"],
+  "mileage-tracker": ["version", "versionCode", "apkUrl", "sha256", "notes", "publishedAt", "apkFileName"],
+  "hannahs-paints": ["version", "versionCode", "apkUrl", "sha256", "notes", "publishedAt", "apkFileName"]
+}

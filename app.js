@@ -38,11 +38,12 @@ async function renderApp(app) {
     failed = true;
   }
 
-  const published = latest && latest.apkUrl && latest.versionName;
+  const versionLabel = latest && (latest.version || latest.versionName);
+  const published = latest && latest.apkUrl && versionLabel;
   if (published) {
     const meta = el("p", "meta");
     meta.append(el("span", "label", "Version"));
-    meta.append(document.createTextNode(latest.versionName));
+    meta.append(document.createTextNode(versionLabel));
     meta.append(el("span", "code", `code ${latest.versionCode}`));
     card.append(meta);
     if (latest.publishedAt) {
