@@ -1,0 +1,62 @@
+name: Publish auction-tracker (request file)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - publish-requests/auction-tracker.json
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read publish request
+        id: request
+        run: |
+          set -euo pipefail
+          jq -e . publish-requests/auction-tracker.json > /dev/null
+          echo "version_name=$(jq -r .versionName publish-requests/auction-tracker.json)" >> "$GITHUB_OUTPUT"
+          echo "version_code=$(jq -r .versionCode publish-requests/auction-tracker.json)" >> "$GITHUB_OUTPUT"
+          echo "source_repo=$(jq -r '.sourceRepo // "MRzoss-byte/Auction-Tracker-"' publish-requests/auction-tracker.json)" >> "$GITHUB_OUTPUT"
+          echo "source_tag=$(jq -r '.sourceTag // "v" + .versionName' publish-requests/auction-tracker.json)" >> "$GITHUB_OUTPUT"
+          echo "expected_sha256=$(jq -r .sha256 publish-requests/auction-tracker.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Install tooling
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Download APK from private release
+        env:
+          AUCTION_TRACKER_REPO_TOKEN: ${{ secrets.AUCTION_TRACKER_REPO_TOKEN }}
+          PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          SOURCE_REPO: ${{ steps.request.outputs.source_repo }}
+          SOURCE_TAG: ${{ steps.request.outputs.source_tag }}
+        run: |
+          set -euo pipefail
+          apk_path=$(SOURCE_REPO="$SOURCE_REPO" SOURCE_TAG="$SOURCE_TAG" scripts/fetch-private-release-apk.sh)
+          echo "APK_PATH=$apk_path" >> "$GITHUB_ENV"
+          sha256sum "$apk_path"
+          expected="${{ steps.request.outputs.expected_sha256 }}"
+          if [[ -n "$expected" ]]; then
+            actual=$(sha256sum "$apk_path" | awk '{print $1}')
+            if [[ "$actual" != "$expected" ]]; then
+              echo "sha256 mismatch: expected $expected got $actual" >&2
+              exit 1
+            fi
+          fi
+
+      - name: Publish to app-updates
+        env:
+          EXPECTED_SHA256: ${{ steps.request.outputs.expected_sha256 }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          scripts/publish.sh auction-tracker "$APK_PATH" "${{ steps.request.outputs.version_name }}" "${{ steps.request.outputs.version_code }}" "Auction Tracker ${{ steps.request.outputs.version_name }}"
