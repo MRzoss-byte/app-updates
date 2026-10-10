@@ -36,11 +36,21 @@ tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
 
 export GH_TOKEN="$token"
-if ! gh release view "$SOURCE_TAG" --repo "$SOURCE_REPO" >/dev/null 2>&1; then
-  die "cannot read release $SOURCE_TAG on $SOURCE_REPO (grant repo access or set AUCTION_TRACKER_REPO_TOKEN)"
+tag="$SOURCE_TAG"
+if ! gh release view "$tag" --repo "$SOURCE_REPO" >/dev/null 2>&1; then
+  if [[ "$tag" == v* ]]; then
+    alt="${tag#v}"
+  else
+    alt="v${tag}"
+  fi
+  if gh release view "$alt" --repo "$SOURCE_REPO" >/dev/null 2>&1; then
+    tag="$alt"
+  else
+    die "cannot read release $SOURCE_TAG on $SOURCE_REPO (grant repo access or set AUCTION_TRACKER_REPO_TOKEN)"
+  fi
 fi
 
-gh release download "$SOURCE_TAG" --repo "$SOURCE_REPO" --pattern '*.apk' -D "$tmpdir"
+gh release download "$tag" --repo "$SOURCE_REPO" --pattern '*.apk' -D "$tmpdir"
 mapfile -t apks < <(find "$tmpdir" -type f -name '*.apk' | sort)
 ((${#apks[@]} > 0)) || die "release $SOURCE_TAG on $SOURCE_REPO has no .apk assets"
 ((${#apks[@]} == 1)) || die "release $SOURCE_TAG on $SOURCE_REPO has multiple APK assets: ${apks[*]}"
