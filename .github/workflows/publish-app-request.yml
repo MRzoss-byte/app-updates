@@ -1,0 +1,78 @@
+name: Publish app (request file)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - publish-requests/*.json
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install tooling
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Publish changed requests
+        env:
+          AUCTION_TRACKER_REPO_TOKEN: ${{ secrets.AUCTION_TRACKER_REPO_TOKEN }}
+          DIYFOLIO_REPO_TOKEN: ${{ secrets.DIYFOLIO_REPO_TOKEN }}
+          PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          SOURCE_REPO_TOKEN: ${{ secrets.SOURCE_REPO_TOKEN }}
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.AUCTION_TRACKER_REPO_TOKEN || secrets.DIYFOLIO_REPO_TOKEN || secrets.PRIVATE_REPO_TOKEN || secrets.GH_PAT || secrets.SOURCE_REPO_TOKEN || secrets.PAT_TOKEN || github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          before="${{ github.event.before }}"
+          after="${{ github.sha }}"
+          mapfile -t changed < <(git diff --name-only "$before" "$after" -- 'publish-requests/*.json' || true)
+          if ((${#changed[@]} == 0)); then
+            mapfile -t changed < <(git diff-tree --no-commit-id --name-only -r "$after" -- 'publish-requests/*.json' || true)
+          fi
+          if ((${#changed[@]} == 0)); then
+            echo "No publish-request files changed in this push." >&2
+            exit 1
+          fi
+
+          for file in "${changed[@]}"; do
+            app=$(basename "$file" .json)
+            jq -e . "$file" > /dev/null
+            version_name=$(jq -r .versionName "$file")
+            version_code=$(jq -r .versionCode "$file")
+            expected_sha=$(jq -r .sha256 "$file")
+            source_repo=$(jq -r --arg app "$app" '.sourceRepo // ""' "$file")
+            if [[ -z "$source_repo" || "$source_repo" == "null" ]]; then
+              case "$app" in
+                auction-tracker) source_repo="MRzoss-byte/Auction-Tracker-" ;;
+                diyfolio) source_repo="MRzoss-byte/DIYfolio" ;;
+                *) echo "missing sourceRepo in $file" >&2; exit 1 ;;
+              esac
+            fi
+            source_tag=$(jq -r --arg vn "$version_name" '.sourceTag // ("v" + $vn)' "$file")
+
+            echo "Publishing $app $version_name ($version_code) from $source_repo tag $source_tag"
+            apk_path=$(SOURCE_REPO="$source_repo" SOURCE_TAG="$source_tag" scripts/fetch-private-release-apk.sh)
+            sha256sum "$apk_path"
+            if [[ -n "$expected_sha" && "$expected_sha" != "null" ]]; then
+              actual=$(sha256sum "$apk_path" | awk '{print $1}')
+              if [[ "$actual" != "$expected_sha" ]]; then
+                echo "sha256 mismatch for $app: expected $expected_sha got $actual" >&2
+                exit 1
+              fi
+            fi
+
+            EXPECTED_SHA256="$expected_sha" scripts/publish.sh "$app" "$apk_path" "$version_name" "$version_code" "$(jq -r --arg app "$app" --arg vn "$version_name" '.notes // ($app + " " + $vn)' "$file")"
+            git pull --rebase origin main
+          done

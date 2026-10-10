@@ -21,7 +21,7 @@ OUT="${1:-}"
 command -v gh >/dev/null || die "gh is required"
 
 token=""
-for name in AUCTION_TRACKER_REPO_TOKEN PRIVATE_REPO_TOKEN SOURCE_REPO_TOKEN PAT_TOKEN GH_PAT GH_TOKEN GITHUB_TOKEN; do
+for name in AUCTION_TRACKER_REPO_TOKEN DIYFOLIO_REPO_TOKEN PRIVATE_REPO_TOKEN SOURCE_REPO_TOKEN PAT_TOKEN GH_PAT GH_TOKEN GITHUB_TOKEN; do
   if [[ -n "${!name:-}" ]]; then
     token="${!name}"
     break
@@ -46,7 +46,7 @@ if ! gh release view "$tag" --repo "$SOURCE_REPO" >/dev/null 2>&1; then
   if gh release view "$alt" --repo "$SOURCE_REPO" >/dev/null 2>&1; then
     tag="$alt"
   else
-    die "cannot read release $SOURCE_TAG on $SOURCE_REPO (grant repo access or set AUCTION_TRACKER_REPO_TOKEN)"
+    die "cannot read release $SOURCE_TAG on $SOURCE_REPO (grant repo access or set PRIVATE_REPO_TOKEN / GH_PAT)"
   fi
 fi
 
