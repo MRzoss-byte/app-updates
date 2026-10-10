@@ -6,7 +6,7 @@
 #     scripts/fetch-private-release-apk.sh [output.apk]
 #
 # Uses the first non-empty token from:
-#   AUCTION_TRACKER_REPO_TOKEN, PRIVATE_REPO_TOKEN, GH_PAT, GH_TOKEN
+#   AUCTION_TRACKER_REPO_TOKEN, PRIVATE_REPO_TOKEN, GH_PAT, GH_TOKEN, GITHUB_TOKEN
 set -euo pipefail
 
 die() {
@@ -21,7 +21,7 @@ OUT="${1:-}"
 command -v gh >/dev/null || die "gh is required"
 
 token=""
-for name in AUCTION_TRACKER_REPO_TOKEN PRIVATE_REPO_TOKEN GH_PAT GH_TOKEN; do
+for name in AUCTION_TRACKER_REPO_TOKEN PRIVATE_REPO_TOKEN GH_PAT GH_TOKEN GITHUB_TOKEN; do
   if [[ -n "${!name:-}" ]]; then
     token="${!name}"
     break
